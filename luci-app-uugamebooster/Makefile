@@ -33,7 +33,7 @@ define Package/luci-app-uugamebooster
   SUBMENU:=3. Applications
   TITLE:=LuCI support for NetEase UU Game Booster
   URL:=https://github.com/xiaodoudou/luci-app-uugamebooster
-  DEPENDS:=@TARGET_x86_64 +luci-base +luci-compat +luci-lua-runtime +kmod-tun +libstdcpp6 \
+  DEPENDS:=@TARGET_x86_64 +luci-base +luci-compat +luci-lua-runtime +kmod-tun +libstdcpp \
     +kmod-ipt-nat +ca-bundle +unshare +ip-tiny +nftables +iptables-nft +tcpdump-mini +curl
 endef
 

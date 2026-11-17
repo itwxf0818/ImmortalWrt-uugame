@@ -27,10 +27,13 @@ cat > .config <<'EOF'
 # CONFIG_ALL_KMODS is not set
 CONFIG_PACKAGE_luci-app-uugamebooster=m
 EOF
-make defconfig
+make defconfig 2>&1 | tee "$build/defconfig.log"
+if grep -E "luci-app-uugamebooster/Makefile.*dependency.*does not exist" "$build/defconfig.log"; then
+    exit 1
+fi
 grep -Fx 'CONFIG_USE_APK=y' .config
 grep -Fx 'CONFIG_PACKAGE_luci-app-uugamebooster=m' .config
-make -j2 package/feeds/uugame/luci-app-uugamebooster/compile V=s
+make -j"$(nproc)" package/feeds/uugame/luci-app-uugamebooster/compile V=s
 
 mapfile -t packages < <(find bin -type f -name 'luci-app-uugamebooster-*.apk')
 [[ ${#packages[@]} -eq 1 ]]
