@@ -18,7 +18,7 @@ cd sdk
 # Preserve the SDK's pinned official feed revisions.
 cp feeds.conf.default feeds.conf
 printf '\nsrc-link uugame %s\n' "$feed" >> feeds.conf
-./scripts/feeds update packages luci uugame
+./scripts/feeds update base packages luci uugame
 ./scripts/feeds install -p uugame luci-app-uugamebooster
 
 cat > .config <<'EOF'
