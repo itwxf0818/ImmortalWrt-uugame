@@ -74,8 +74,8 @@ while IFS= read -r -d '' package; do
     ln -s "$(realpath "$package")" "$build/repo/"
 done < <(find bin -type f -name '*.apk' -print0)
 "$apk" mkndx --allow-untrusted --output "$build/repo/packages.adb" "$build/repo/"*.apk
-staging_dir/host/bin/fakeroot "$apk" --root "$build/solver" --arch x86_64 add \
-    --allow-untrusted --no-cache --initdb --no-scripts --repositories-file /dev/null \
+"$apk" --root "$build/solver" --arch x86_64 add \
+    --allow-untrusted --no-cache --initdb --no-chown --no-scripts --repositories-file /dev/null \
     --repository "file://$build/repo/packages.adb" luci-app-uugamebooster ip-full
 
 stage="$build/apk"
