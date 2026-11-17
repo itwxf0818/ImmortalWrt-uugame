@@ -1,31 +1,77 @@
-name: 检查 UU 上游更新
+name: 自动更新 UU 上游
 on:
   schedule:
-    - cron: '23 3 * * 1'
+    # 北京时间每天 07:00，与 FRP 一致。
+    - cron: '0 23 * * *'
   workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: 'ImmortalWrt SDK 版本（latest 或 25.12.x）'
+        type: string
+        default: latest
 
 permissions:
   contents: read
 
+concurrency:
+  group: uugame-upstream-update
+  cancel-in-progress: false
+
 jobs:
-  upstream:
+  check:
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    outputs:
+      changed: ${{ steps.upstream.outputs.changed }}
+      commit: ${{ steps.upstream.outputs.commit }}
+      checksum: ${{ steps.upstream.outputs.checksum }}
+      version: ${{ steps.upstream.outputs.version }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
-      - name: 比较已固定的版本和上游 master
-        shell: bash
+      - id: upstream
+        run: python3 ci/update-upstream.py detect "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/verify.yml
+    with:
+      sdk_version: ${{ inputs.sdk_version || 'latest' }}
+      commit: ${{ needs.check.outputs.commit }}
+      checksum: ${{ needs.check.outputs.checksum }}
+      version: ${{ needs.check.outputs.version }}
+
+  publish:
+    needs: [check, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.sha }}
+      - name: 推送已经验证的候选版本
+        env:
+          BASE: ${{ github.sha }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+          UPSTREAM_COMMIT: ${{ needs.check.outputs.commit }}
+          UPSTREAM_CHECKSUM: ${{ needs.check.outputs.checksum }}
+          UPSTREAM_VERSION: ${{ needs.check.outputs.version }}
         run: |
-          pinned=$(sed -n 's/^UPSTREAM_COMMIT:=//p' luci-app-uugamebooster/Makefile)
-          remote=$(git ls-remote --exit-code https://github.com/xiaodoudou/luci-app-uugamebooster.git refs/heads/master)
-          latest=${remote%%$'\t'*}
-          [[ "$pinned" =~ ^[0-9a-f]{40}$ && "$latest" =~ ^[0-9a-f]{40}$ ]]
-          if [[ "$pinned" == "$latest" ]]; then
-            echo "当前版本与上游一致（$pinned）。" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning::UU 上游有新提交，请审核差异后手动更新。"
-            printf '已固定 `%s`，上游 `%s`。\n\n[查看差异](https://github.com/xiaodoudou/luci-app-uugamebooster/compare/%s...%s)\n' \
-              "$pinned" "$latest" "$pinned" "$latest" >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          git fetch origin "refs/heads/$BRANCH"
+          if [[ "$(git rev-parse FETCH_HEAD)" != "$BASE" ]]; then
+            echo "::error::验证期间默认分支已更新，请重新运行同步。"
+            exit 1
           fi
+          python3 ci/update-upstream.py apply "$UPSTREAM_COMMIT" "$UPSTREAM_CHECKSUM" "$UPSTREAM_VERSION"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add luci-app-uugamebooster/Makefile
+          git commit -m "chore: update UU to $UPSTREAM_VERSION (${UPSTREAM_COMMIT:0:12})"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          printf '已更新默认分支：`%s`。\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"

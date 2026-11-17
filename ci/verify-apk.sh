@@ -6,10 +6,39 @@ build=$(mktemp -d)
 trap 'rm -rf -- "$build"' EXIT
 cd "$build"
 
-sdk=immortalwrt-sdk-25.12.2-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-curl -fsSL --proto '=https' --proto-redir '=https' --retry 3 \
-    "https://downloads.immortalwrt.org/releases/25.12.2/targets/x86/64/$sdk" -o "$sdk"
-echo "4d4631f134c2f27215a91aa7ef5bf9a01ea96c2450d3b8a5c38048c32462ac60  $sdk" | sha256sum -c -
+release=${1:-latest}
+releases=https://downloads.immortalwrt.org/releases
+fetch() {
+    curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 20 --retry 3 "$@"
+}
+
+if [[ "$release" == latest ]]; then
+    release=$(fetch "$releases/" |
+        grep -oE 'href="25\.12\.[0-9]+/"' |
+        cut -d '"' -f 2 | tr -d / | sort -Vu | tail -n 1)
+fi
+if [[ ! "$release" =~ ^25\.12\.[0-9]+$ ]]; then
+    echo "SDK version must be latest or a stable 25.12.x patch release." >&2
+    exit 1
+fi
+
+base="$releases/$release/targets/x86/64"
+fetch "$base/sha256sums" -o sha256sums
+entry=$(awk -v prefix="immortalwrt-sdk-$release-x86-64_" '
+    { sub(/^\*/, "", $2) }
+    index($2, prefix) == 1 && $2 ~ /^[a-zA-Z0-9._-]+\.Linux-x86_64\.tar\.zst$/ {
+        print $1, $2
+    }
+' sha256sums)
+read -r checksum sdk <<< "$entry"
+if [[ "$entry" == *$'\n'* || ! "$checksum" =~ ^[0-9a-f]{64}$ || -z "$sdk" ]]; then
+    echo "Expected one x86/64 Linux SDK in ImmortalWrt $release checksums." >&2
+    exit 1
+fi
+printf 'ImmortalWrt SDK %s (%s)\n' "$release" "$sdk"
+fetch "$base/$sdk" -o "$sdk"
+printf '%s  %s\n' "$checksum" "$sdk" | sha256sum -c -
+
 mkdir sdk
 tar --zstd -xf "$sdk" -C sdk --strip-components=1
 rm -- "$sdk"

@@ -1,6 +1,6 @@
 # ImmortalWrt UU 游戏加速器 Feed
 
-为 ImmortalWrt **25.12 x86/64（x86_64，APK）** 提供 `luci-app-uugamebooster`。构建验证使用官方 25.12.2 SDK。适用于自行编译固件或用对应版本的 SDK 生成独立 APK。
+为 ImmortalWrt **25.12 x86/64（x86_64，APK）** 提供 `luci-app-uugamebooster`。构建验证默认使用官方最新的 25.12.x 稳定版 SDK。适用于自行编译固件或用对应版本的 SDK 生成独立 APK。
 
 ## 接入固件编译
 
@@ -35,4 +35,6 @@ Linux x86_64 构建机需有 Python 3。首次构建会下载固定提交的源�
 
 来源为 [xiaodoudou/luci-app-uugamebooster](https://github.com/xiaodoudou/luci-app-uugamebooster/tree/4984a88b92a07212dc047094eef59a7c9a45b9f1) 2.5，固定提交和归档校验值见 Makefile。上游 Makefile 标注 Apache 2.0，未找到适用于整个仓库的授权文件。此 feed 提供构建配方，构建时直接从上游获取源码。验证流程只检查本次构建的 APK，构建产物不作为公开发布文件上传。
 
-GitHub Actions 在提交后用官方 SDK 构建并检查 APK 内的关键文件。每周检查上游 `master`，如有变化只在任务摘要列出差异，不合并或执行上游新提交。升级时先审核授权、依赖和下载逻辑，再更新 Makefile 中的提交及 SHA-256，提升包版本并重跑验证。
+GitHub Actions 每天北京时间 07:00 检查上游 `master`。有新提交时，工作流计算源码包的 SHA-256、更新包版本并用官方 SDK 构建和检查 APK。验证通过才自动提交到 `main`。构建失败时可在 Actions 查看日志；下一次定时运行会重试。
+
+在 Actions 手动运行「验证 ImmortalWrt 25.12 APK」时，可将 `sdk_version` 设为具体版本（如 `25.12.1`）。默认 `latest` 从官方目录选择最新的 25.12.x 稳定版，并按官方清单校验 SDK。

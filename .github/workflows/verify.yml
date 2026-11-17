@@ -4,12 +4,31 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: 'ImmortalWrt SDK 版本（latest 或 25.12.x）'
+        type: string
+        default: latest
+  workflow_call:
+    inputs:
+      sdk_version:
+        type: string
+        default: latest
+      commit:
+        type: string
+        required: true
+      checksum:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: verify-${{ github.ref }}
+  group: verify-${{ github.ref }}-${{ inputs.commit || 'current' }}
   cancel-in-progress: true
 
 jobs:
@@ -20,10 +39,19 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+      - name: 应用待验证的更新
+        if: inputs.commit
+        env:
+          UPSTREAM_COMMIT: ${{ inputs.commit }}
+          UPSTREAM_CHECKSUM: ${{ inputs.checksum }}
+          UPSTREAM_VERSION: ${{ inputs.version }}
+        run: python3 ci/update-upstream.py apply "$UPSTREAM_COMMIT" "$UPSTREAM_CHECKSUM" "$UPSTREAM_VERSION"
       - name: 安装 SDK 所需工具
         run: |
           sudo apt-get update -q
           sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib gettext \
             libncurses-dev libssl-dev python3 python3-pyelftools python3-setuptools rsync unzip zstd
       - name: 编译并检查 APK
-        run: bash ci/verify-apk.sh
+        env:
+          SDK_VERSION: ${{ inputs.sdk_version || 'latest' }}
+        run: bash ci/verify-apk.sh "$SDK_VERSION"
