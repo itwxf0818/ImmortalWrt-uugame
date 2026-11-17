@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-uugamebooster
 PKG_VERSION:=2.5
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 UPSTREAM_COMMIT:=4984a88b92a07212dc047094eef59a7c9a45b9f1
 PKG_SOURCE:=uu-gamebooster-$(UPSTREAM_COMMIT).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/xiaodoudou/luci-app-uugamebooster/tar.gz
@@ -34,7 +34,7 @@ define Package/luci-app-uugamebooster
   TITLE:=LuCI support for NetEase UU Game Booster
   URL:=https://github.com/xiaodoudou/luci-app-uugamebooster
   DEPENDS:=@TARGET_x86_64 +luci-base +luci-compat +luci-lua-runtime +kmod-tun +libstdcpp \
-    +kmod-ipt-nat +ca-bundle +unshare +ip-tiny +nftables +iptables-nft +tcpdump-mini +curl
+    +kmod-ipt-nat +ca-bundle +unshare +ip-full +nftables +iptables-nft +tcpdump-mini +curl
 endef
 
 define Package/luci-app-uugamebooster/conffiles

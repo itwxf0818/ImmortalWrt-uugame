@@ -27,7 +27,7 @@ Linux x86_64 构建机需有 Python 3。首次构建会下载固定提交的源�
 ## APK 与运行时
 
 - APK 位于 `bin/packages/x86_64/uugame/`。使用与正在运行的系统匹配的 ImmortalWrt 25.12 SDK 和软件源。尤其是 `kmod-tun`、`kmod-ipt-nat` 必须匹配固件的内核 ABI。SNAPSHOT 请使用同一构建的 SDK 和模块，稳定版 SDK 的测试不能替代 SNAPSHOT 的检查。
-- 对自己构建并已核对的未签名 APK，可在相匹配的系统上使用 `apk add --allow-untrusted ./luci-app-uugamebooster-2.5-r2.apk`。普通安装请保留依赖检查。插件依赖由 Makefile 声明，25.12 选用具体的 `iptables-nft` 和 `ip-tiny`，不需要新增第三方依赖 feed。
+- 对自己构建并已核对的未签名 APK，可在相匹配的系统上使用 `apk add --allow-untrusted ./luci-app-uugamebooster-2.5-r3.apk`。普通安装请保留依赖检查。插件依赖由 Makefile 声明，25.12 选用具体的 `iptables-nft` 和 `ip-full`，与 PassWall 共用同一个 `ip` 实现。若从旧版配方重新编译含 PassWall 的固件，请在配置中取消选中 `ip-tiny`，然后运行 `make defconfig`。
 - 预设为关闭。启用「仅游戏主机」时，PS5 使用网易原生 x86_64 程序。首次启动从网易下载，强制 HTTPS，按网易接口给出的 MD5 核对。该 MD5 来自供应商接口。
 - 电脑及手机模式还需要 aarch64 网易程序、QEMU 和兼容库。按上游机制首次使用时下载，QEMU 与兼容库使用固定 SHA-256。本包在构建时生成 x86_64、aarch64 两个设备筛选组件，并包含简体中文 LuCI 翻译。配置保存在 `/etc/config/uuplugin`。
 

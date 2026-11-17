@@ -66,6 +66,16 @@ make -j"$(nproc)" package/feeds/uugame/luci-app-uugamebooster/compile V=s
 
 mapfile -t packages < <(find bin -type f -name 'luci-app-uugamebooster-*.apk')
 [[ ${#packages[@]} -eq 1 ]]
+# Resolve packages with the same explicit ip-full requirement as PassWall.
+# The previous UU package required ip-tiny and failed at this step in firmware builds.
+apk="$PWD/staging_dir/host/bin/apk"
+mapfile -d '' -t repository_packages < <(find bin -type f -name '*.apk' -print0)
+"$apk" mkndx --allow-untrusted --output "$build/packages.adb" "${repository_packages[@]}"
+mkdir "$build/solver"
+"$apk" --root "$build/solver" --arch x86_64 --allow-untrusted add \
+    --initdb --simulate --no-scripts --repositories-file /dev/null \
+    --repository "file://$build/packages.adb" luci-app-uugamebooster ip-full
+
 stage="$build/apk"
 mkdir "$stage"
 staging_dir/host/bin/apk extract --allow-untrusted --destination "$stage" "${packages[0]}"
