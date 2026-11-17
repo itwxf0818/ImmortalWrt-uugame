@@ -1,0 +1,31 @@
+name: 检查 UU 上游更新
+on:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upstream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: 比较已固定的版本和上游 master
+        shell: bash
+        run: |
+          pinned=$(sed -n 's/^UPSTREAM_COMMIT:=//p' luci-app-uugamebooster/Makefile)
+          remote=$(git ls-remote --exit-code https://github.com/xiaodoudou/luci-app-uugamebooster.git refs/heads/master)
+          latest=${remote%%$'\t'*}
+          [[ "$pinned" =~ ^[0-9a-f]{40}$ && "$latest" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$pinned" == "$latest" ]]; then
+            echo "当前版本与上游一致（$pinned）。" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::UU 上游有新提交，请审核差异后手动更新。"
+            printf '已固定 `%s`，上游 `%s`。\n\n[查看差异](https://github.com/xiaodoudou/luci-app-uugamebooster/compare/%s...%s)\n' \
+              "$pinned" "$latest" "$pinned" "$latest" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -1,0 +1,29 @@
+name: 验证 ImmortalWrt 25.12 APK
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: 安装 SDK 所需工具
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib gettext \
+            libncurses-dev libssl-dev python3 python3-pyelftools python3-setuptools rsync unzip zstd
+      - name: 编译并检查 APK
+        run: bash ci/verify-apk.sh
